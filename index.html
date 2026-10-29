@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f8f6">
+  <meta name="description" content="A tiny, free tic-tac-toe break. Play solo or pass the screen to a friend.">
+  <meta name="author" content="Ansh Saxena">
+  <title>Tic Tac Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f2f8f6;
+      --ink: #172b2c;
+      --muted: #718384;
+      --line: #d8e5e1;
+      --tile: #fffefa;
+      --mint: #c7f1df;
+      --coral: #ff765f;
+      --blue: #477be8;
+      --yellow: #f6ca57;
+      --mono: "DM Mono", monospace;
+      --display: "Space Grotesk", "Trebuchet MS", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#cbdcd6 0.75px, transparent 0.75px);
+      background-size: 19px 19px;
+      font-family: var(--display);
+    }
+
+    button { font: inherit; }
+
+    .page {
+      width: min(100% - 40px, 1050px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px 0 34px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 9px;
+      color: var(--ink);
+      background: var(--yellow);
+      font-size: 18px;
+      transform: rotate(-7deg);
+    }
+
+    .free-note {
+      color: var(--muted);
+      font: 11px var(--mono);
+      letter-spacing: 0.02em;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 270px;
+      align-items: center;
+      gap: clamp(36px, 8vw, 100px);
+      padding: 38px 0;
+    }
+
+    .game-area { width: min(100%, 520px); margin: 0 auto; }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font: 11px var(--mono);
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(40px, 6vw, 62px);
+      line-height: 0.98;
+      font-weight: 700;
+    }
+
+    h1 span { color: var(--coral); }
+
+    .status-row {
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 18px 0 12px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .turn-dot {
+      width: 11px;
+      height: 11px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--coral);
+      box-shadow: 0 0 0 4px #ff765f24;
+    }
+
+    .turn-dot.is-o { background: var(--blue); box-shadow: 0 0 0 4px #477be824; }
+
+    .round-count {
+      color: var(--muted);
+      font: 11px var(--mono);
+      white-space: nowrap;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      width: 100%;
+      aspect-ratio: 1;
+      padding: 10px;
+      border: 1px solid #d3e2dd;
+      border-radius: 18px;
+      background: #e6f0ec;
+      box-shadow: 0 14px 35px #28494312;
+    }
+
+    .cell {
+      display: grid;
+      min-width: 0;
+      place-items: center;
+      padding: 0;
+      border: 1px solid #e8eee9;
+      border-radius: 12px;
+      background: var(--tile);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cell:hover:enabled { transform: translateY(-2px); border-color: #b6d5c7; }
+    .cell:active:enabled { transform: scale(0.96); }
+    .cell:focus-visible, button:focus-visible { outline: 3px solid #477be8; outline-offset: 3px; }
+    .cell:disabled { cursor: default; }
+
+    .mark {
+      font-size: clamp(52px, 11vw, 94px);
+      font-weight: 600;
+      line-height: 1;
+      animation: pop 180ms cubic-bezier(.2, .8, .2, 1.2) both;
+    }
+
+    .mark.x { color: var(--coral); }
+    .mark.o { color: var(--blue); }
+
+    .cell.winner { background: var(--mint); border-color: #a8dfc4; }
+
+    .side-panel {
+      align-self: center;
+      padding-left: 26px;
+      border-left: 1px solid var(--line);
+    }
+
+    .panel-label {
+      margin: 0 0 11px;
+      color: var(--muted);
+      font: 10px var(--mono);
+      text-transform: uppercase;
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #e8f0ed;
+    }
+
+    .mode-button {
+      min-height: 38px;
+      padding: 7px 8px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .mode-button[aria-pressed="true"] {
+      background: var(--tile);
+      color: var(--ink);
+      box-shadow: 0 1px 3px #172b2c18;
+    }
+
+    .score-block { margin-top: 30px; }
+
+    .score-list { display: grid; gap: 8px; }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .score-name { display: flex; align-items: center; gap: 9px; }
+
+    .score-symbol {
+      width: 23px;
+      height: 23px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: #fffefa;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .score-symbol.x { color: var(--coral); }
+    .score-symbol.o { color: var(--blue); }
+    .score-number { font: 13px var(--mono); }
+
+    .actions { display: grid; gap: 9px; margin-top: 27px; }
+
+    .action-button {
+      min-height: 42px;
+      padding: 9px 13px;
+      border: 1px solid #b9d1c7;
+      border-radius: 9px;
+      background: var(--mint);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      transition: transform 140ms ease, background 140ms ease;
+    }
+
+    .action-button:hover { transform: translateY(-1px); background: #b5e9d1; }
+
+    .action-button.secondary {
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .action-button.secondary:hover { background: #e5eeea; }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 15px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font: 10px var(--mono);
+    }
+
+    @keyframes pop {
+      from { opacity: 0; transform: scale(0.55) rotate(-12deg); }
+      to { opacity: 1; transform: scale(1) rotate(0); }
+    }
+
+    @media (max-width: 700px) {
+      .page { width: min(100% - 32px, 520px); padding-top: 18px; }
+      main { grid-template-columns: 1fr; gap: 30px; padding: 29px 0 24px; }
+      .game-area { width: min(100%, 460px); }
+      .side-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+        column-gap: 22px;
+        row-gap: 18px;
+        padding: 0;
+        border: 0;
+      }
+      .mode-section { grid-column: 1 / -1; }
+      .score-block { margin: 0; }
+      .actions { margin: 0; }
+      footer { margin-top: auto; }
+    }
+
+    @media (max-width: 390px) {
+      .page { width: calc(100% - 24px); }
+      .board { gap: 7px; padding: 7px; border-radius: 15px; }
+      .cell { border-radius: 9px; }
+      .side-panel { column-gap: 14px; }
+      .action-button { padding-inline: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">+</span> Tic Tac Club</div>
+      <span class="free-note">A LITTLE BREAK, ON THE HOUSE</span>
+    </header>
+
+    <main>
+      <section class="game-area" aria-labelledby="game-title">
+        <p class="eyebrow">A pocket-sized classic</p>
+        <h1 id="game-title">Tic <span>tac</span><br>toe.</h1>
+        <div class="status-row">
+          <p class="status" id="game-status" aria-live="polite"><span class="turn-dot" aria-hidden="true"></span><span>Your turn</span></p>
+          <span class="round-count" id="round-count">ROUND 01</span>
+        </div>
+        <div class="board" id="board" role="group" aria-label="Tic-tac-toe board">
+          <button class="cell" type="button" data-cell="0" aria-label="Row 1, column 1, empty"></button>
+          <button class="cell" type="button" data-cell="1" aria-label="Row 1, column 2, empty"></button>
+          <button class="cell" type="button" data-cell="2" aria-label="Row 1, column 3, empty"></button>
+          <button class="cell" type="button" data-cell="3" aria-label="Row 2, column 1, empty"></button>
+          <button class="cell" type="button" data-cell="4" aria-label="Row 2, column 2, empty"></button>
+          <button class="cell" type="button" data-cell="5" aria-label="Row 2, column 3, empty"></button>
+          <button class="cell" type="button" data-cell="6" aria-label="Row 3, column 1, empty"></button>
+          <button class="cell" type="button" data-cell="7" aria-label="Row 3, column 2, empty"></button>
+          <button class="cell" type="button" data-cell="8" aria-label="Row 3, column 3, empty"></button>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="Game settings and scores">
+        <section class="mode-section">
+          <p class="panel-label">Play mode</p>
+          <div class="mode-switch" role="group" aria-label="Choose play mode">
+            <button class="mode-button" type="button" data-mode="solo" aria-pressed="true">Solo</button>
+            <button class="mode-button" type="button" data-mode="friends" aria-pressed="false">2 players</button>
+          </div>
+        </section>
+
+        <section class="score-block" aria-label="Match score">
+          <p class="panel-label">Score</p>
+          <div class="score-list">
+            <div class="score-row"><span class="score-name"><span class="score-symbol x">X</span><span id="x-name">You</span></span><span class="score-number" id="x-score">0</span></div>
+            <div class="score-row"><span class="score-name"><span class="score-symbol o">O</span><span id="o-name">Computer</span></span><span class="score-number" id="o-score">0</span></div>
+            <div class="score-row"><span class="score-name">Draws</span><span class="score-number" id="draw-score">0</span></div>
+          </div>
+        </section>
+
+        <div class="actions">
+          <button class="action-button" id="new-round" type="button">New round</button>
+          <button class="action-button secondary" id="reset-scores" type="button">Reset score</button>
+        </div>
+      </aside>
+    </main>
+
+    <footer><span>NO SIGN-UP. NO COINS. JUST NINES.</span><span>MADE BY ANSH SAXENA</span></footer>
+  </div>
+
+  <script>
+    const cells = [...document.querySelectorAll(".cell")];
+    const status = document.querySelector("#game-status");
+    const statusText = status.querySelector("span:last-child");
+    const turnDot = status.querySelector(".turn-dot");
+    const modeButtons = [...document.querySelectorAll("[data-mode]")];
+    const scores = { X: 0, O: 0, draw: 0 };
+    const winningLines = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+    let board = Array(9).fill("");
+    let currentPlayer = "X";
+    let mode = "solo";
+    let round = 1;
+    let gameOver = false;
+    let cpuTimer;
+
+    function setStatus(message, player = currentPlayer) {
+      statusText.textContent = message;
+      turnDot.classList.toggle("is-o", player === "O");
+    }
+
+    function winnerLine() {
+      return winningLines.find(([a, b, c]) => board[a] && board[a] === board[b] && board[a] === board[c]);
+    }
+
+    function updateScore() {
+      document.querySelector("#x-score").textContent = scores.X;
+      document.querySelector("#o-score").textContent = scores.O;
+      document.querySelector("#draw-score").textContent = scores.draw;
+    }
+
+    function updateBoard() {
+      cells.forEach((cell, index) => {
+        const mark = board[index];
+        cell.innerHTML = mark ? `<span class="mark ${mark.toLowerCase()}" aria-hidden="true">${mark}</span>` : "";
+        cell.setAttribute("aria-label", `Row ${Math.floor(index / 3) + 1}, column ${(index % 3) + 1}, ${mark || "empty"}`);
+        cell.disabled = gameOver || Boolean(mark) || (mode === "solo" && currentPlayer === "O");
+        cell.classList.toggle("winner", Boolean(winnerLine()?.includes(index)) && gameOver);
+      });
+    }
+
+    function finishRound(line) {
+      gameOver = true;
+      if (line) {
+        const winner = board[line[0]];
+        scores[winner] += 1;
+        const name = mode === "solo" && winner === "O" ? "Computer wins" : `${winner} wins`;
+        setStatus(`${name}!`, winner);
+        line.forEach(index => cells[index].classList.add("winner"));
+      } else {
+        scores.draw += 1;
+        setStatus("It's a draw!");
+      }
+      updateScore();
+      updateBoard();
+    }
+
+    function play(index) {
+      if (gameOver || board[index] || (mode === "solo" && currentPlayer === "O")) return;
+      board[index] = currentPlayer;
+      const line = winnerLine();
+      if (line || board.every(Boolean)) {
+        finishRound(line);
+        return;
+      }
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      setStatus(mode === "solo" && currentPlayer === "O" ? "Thinking..." : `${currentPlayer}'s turn`);
+      updateBoard();
+      if (mode === "solo" && currentPlayer === "O") {
+        cpuTimer = window.setTimeout(playComputer, 420);
+      }
+    }
+
+    function playComputer() {
+      const available = board.map((value, index) => value ? -1 : index).filter(index => index >= 0);
+      const move = available[Math.floor(Math.random() * available.length)];
+      board[move] = "O";
+      const line = winnerLine();
+      if (line || board.every(Boolean)) {
+        finishRound(line);
+        return;
+      }
+      currentPlayer = "X";
+      setStatus("Your turn", "X");
+      updateBoard();
+    }
+
+    function startRound() {
+      window.clearTimeout(cpuTimer);
+      board = Array(9).fill("");
+      currentPlayer = "X";
+      gameOver = false;
+      document.querySelector("#round-count").textContent = `ROUND ${String(round).padStart(2, "0")}`;
+      setStatus(mode === "solo" ? "Your turn" : "X's turn", "X");
+      updateBoard();
+    }
+
+    cells.forEach((cell, index) => cell.addEventListener("click", () => play(index)));
+    document.querySelector("#new-round").addEventListener("click", () => {
+      round += 1;
+      startRound();
+    });
+    document.querySelector("#reset-scores").addEventListener("click", () => {
+      scores.X = 0;
+      scores.O = 0;
+      scores.draw = 0;
+      round = 1;
+      updateScore();
+      startRound();
+    });
+
+    modeButtons.forEach(button => button.addEventListener("click", () => {
+      mode = button.dataset.mode;
+      modeButtons.forEach(option => option.setAttribute("aria-pressed", String(option === button)));
+      document.querySelector("#x-name").textContent = mode === "solo" ? "You" : "Player X";
+      document.querySelector("#o-name").textContent = mode === "solo" ? "Computer" : "Player O";
+      round = 1;
+      startRound();
+    }));
+
+    startRound();
+  </script>
+</body>
+</html>
